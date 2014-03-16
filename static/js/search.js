@@ -1,3 +1,0 @@
-function submitted(){
-	var q = 
-}
