@@ -22,16 +22,21 @@ def addUser( userid ,username , email , password , location , oauthtoken ,authty
 		userid = str(uuid.uuid1())
 
 	
-
+	password = generate_password_hash(password)
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
+	if location == None:
+		locSparqlString = ""
+	else:
+		locSparqlString = "<http://example/hasLocation> '"+location+"';"
 	q = """
 	INSERT DATA
 	{ <http://example.com/"""+ userid +""">     a             <http://example/User> ;
 					  <http://example/hasPassword> '""" + password+"""';
+					  <http://example/hasName> '""" + username+"""';
 					  <http://example/hasEmail>	'"""+email+"""';
-					  <http://example/hasLocation> '"""+location+"""';
+					  """ + locSparqlString + """
 					  <http://example/hasOauthtoken> '"""+oauthtoken+"""';
-					  <http://example/hasAuthType> <http://example/"""+ authtype +"""
+					  <http://example/hasAuthType> <http://example/"""+ authtype +""">
 	 }"""
 	sparql.setQuery(q)
 	
@@ -62,7 +67,7 @@ def user_by_email(email):
 	q = """ SELECT ?userid  ?password WHERE {
 	?userid a <http://example/User> ;
 	       <http://example/hasEmail> '""" + email + """';
-	       <http://example.com/hasPassword> ?password.
+	       <http://example/hasPassword> ?password.
 	}
 	"""
 	sparql.setReturnFormat(JSON)
@@ -75,18 +80,40 @@ def user_by_email(email):
 
 
 def authenticate(email,password):
-
+	
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
 	q = """
-	ASK
+	SELECT ?password WHERE
 	{
 	?user <http://example/hasEmail> '"""+email+"""';
-	      <http://example.com/hasPassword> '"""+password+"""'.
+	      <http://example/hasPassword> ?password.
+	}"""
+	
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q)
+	sparql.method = 'GET'
+	results = sparql.query().convert()
+	
+	resu = results['results']['bindings'][0]['password']['value']
+	return check_password_hash(resu,password)
+
+def userType(email):
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
+	q = """ SELECT ?userType WHERE {
+	?userid a <http://example/User> ;
+	       <http://example/hasEmail> '"""+email+"""';
+	       <http://example/hasAuthType> ?userType.
 	}"""
 	sparql.setReturnFormat(JSON)
 	sparql.setQuery(q)
 	sparql.method = 'GET'
 	results = sparql.query().convert()
+	return results['results']['bindings'][0]['userType']['value'][15:]
 
-	return results["boolean"]
+	
 
+def set_password(self, password):
+    self.pwdhash = generate_password_hash(password)
+   
+def check_password(self, password):
+    return check_password_hash(self.pwdhash, password)

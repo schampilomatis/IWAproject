@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>IWA Tutorial</title>
+    </head>
+    <body>
+       
+        <div>
+            <label for='artist'>Artist</label>
+            <input type='text' id='artist'>
+            <a id="search_artists">go</a>
+        </div>
+        <div id="artist_results"></div>
+        <script src='{{ url_for("static", filename="js/jquery-1.11.0.min.js") }}' type='text/javascript'></script>   
+        <script src='{{ url_for("static", filename="js/project.js") }}' type='text/javascript'></script>
+               
+    </body>
+</html>

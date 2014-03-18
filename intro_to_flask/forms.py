@@ -1,6 +1,7 @@
 from flask.ext.wtf import Form
 from wtforms import TextField,TextAreaField,SubmitField, validators, ValidationError, PasswordField
 from models import db, User
+from RDFhandler import user_by_email, authenticate ,checkEmail
 
 class ContactForm(Form):
   name = TextField("Name", [validators.Required("Please enter your name.")])
@@ -23,8 +24,8 @@ class SignupForm(Form):
     if not Form.validate(self):
       return False
      
-    user = User.query.filter_by(email = self.email.data.lower()).first()
-    if user:
+    
+    if checkEmail(self.email.data.lower()):
       self.email.errors.append("That email is already taken")
       return False
     else:
@@ -42,9 +43,11 @@ class SigninForm(Form):
   def validate(self):
     if not Form.validate(self):
       return False
-     
-    user = User.query.filter_by(email = self.email.data.lower()).first()
-    if user and user.check_password(self.password.data):
+    
+
+    result = authenticate(self.email.data.lower() , self.password.data)
+
+    if result:
       return True
     else:
       self.email.errors.append("Invalid e-mail or password")

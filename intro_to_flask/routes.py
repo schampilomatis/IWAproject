@@ -1,16 +1,17 @@
 from intro_to_flask import app
-from flask import Flask, render_template, request, flash, session, redirect, url_for
+from flask import Flask, render_template, request, flash, session, redirect, url_for,jsonify
 from forms import ContactForm, SignupForm, SigninForm
 from flask.ext.mail import Message, Mail
 from models import db, User
-from
+from flask.ext.wtf import Form
 from flask_oauth import OAuth
 from flask.ext.social import Social
 from flask.ext.social.datastore import SQLAlchemyConnectionDatastore
 import json
 from urllib2 import Request, urlopen, URLError
-
-
+from RDFhandler import addUser, checkEmail , userType
+import musicbrainzngs
+import pylast
 
 #--------------------------------------------------------------------------------------------------
 
@@ -77,11 +78,10 @@ def signup():
     if form.validate() == False:
       return render_template('signup.html', form=form)
     else:
-      newuser = User(form.username.data, form.email.data, form.password.data, form.location.data, None)
-      db.session.add(newuser)
-      db.session.commit()  
 
-      session['email'] = newuser.email
+      addUser(None,form.username.data,form.email.data.lower(),form.password.data,form.location.data,"","Normal")
+
+      session['email'] = form.email.data.lower()
       return redirect(url_for('profile'))
 
   elif request.method == 'GET':
@@ -94,13 +94,17 @@ def profile():
   if 'email' not in session:
     return redirect(url_for('signin'))
  
-  user = User.query.filter_by(email = session['email']).first()
+  #user = User.query.filter_by(email = session['email']).first()
  
-  if user is None:
-    return redirect(url_for('signin'))
-  else:
-    return render_template('profile.html')
+  #if user is None:
+    #return redirect(url_for('signin'))
+  #else:
+  return render_template('profile.html')
 
+
+@app.route('/tpt')
+def tpt():
+    return render_template('tpt.html')
 
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
@@ -165,17 +169,20 @@ def facebook_authorized(resp):
         )
     session['oauth_token'] = (resp['access_token'], '')
     me = facebook.get('/me')
-
-    user = User.query.filter_by(email = me.data['email']).first()
-    if user is None:
-
-      newuser = User(me.data['username'],me.data['email'], me.data['id'], me.data['location']['name'],resp['access_token'])
-      db.session.add(newuser)
-      db.session.commit() 
-
+     
+    if checkEmail(me.data['email'])== False :
+      addUser(me.data['id'],me.data['username'], me.data['email'], 'abcde',me.data['location']['name'],resp['access_token'],"facebook")
+      session['email'] = me.data['email'] 
+      return redirect(url_for('profile'))      
     else:
-      session['email'] = me.data['email']
-      return redirect(url_for('profile'))
+      if userType(me.data['email']) == "facebook":
+        session['email'] = me.data['email']
+        return redirect(url_for('profile'))
+      else:
+        form = SigninForm()
+        form.email.errors = ["Wrong Account Type"]
+        return render_template('signin.html', form=form)
+      
 
 
 @facebook.tokengetter
@@ -224,11 +231,55 @@ def authorized(resp):
             # Unauthorized - bad token
             session.pop('access_token', None)
             return redirect(url_for('glogin'))
-    
-    return res.read()   
-   # session['email'] = json.load(res)['email']
-   # return redirect(url_for('profile'))
+
+    res = json.load(res)
+    if checkEmail(res['email'])== False :
+      addUser(res['id'],res['name'],res['email'],"123",None, access_token , "google")
+      session['email'] = res['email']
+      return  redirect(url_for('profile'))    
+    else:
+      if userType(res['email']) == "google":
+        session['email'] = res['email']
+        return  redirect(url_for('profile'))
+      else:
+        form = SigninForm()
+        form.email.errors = ["Wrong Account Type"]
+        return render_template('signin.html', form=form)
+    # session['email'] = json.load(res)['email']
+    # return redirect(url_for('profile'))
 
 @google.tokengetter
 def get_access_token():
     return session.get('access_token')
+
+
+@app.route('/artists',methods=['GET', 'POST'])
+def artists():
+  q = request.args.get('artist')
+  musicbrainzngs.set_useragent("test",1,None)
+  artists = musicbrainzngs.search_artists(q)
+
+  return jsonify(artists)
+
+
+@app.route('/songs',methods=['GET', 'POST'])
+def songs():
+  id = request.args.get('id')
+  print id
+
+  API_KEY = '4bea9a7cfe15b09d2ada827592605ee0'
+  API_SECRET = '13b346b26064a3537796608d27802711'
+
+  username = "nicksar11"
+  password_hash = pylast.md5("cavcle501")
+  network = pylast.LastFMNetwork(api_key=API_KEY,api_secret=API_SECRET,username=username,password_hash=password_hash)
+
+  fetchedArtist = network.get_artist_by_mbid(id)
+  tracks = fetchedArtist.get_top_tracks()
+
+  result = ""
+  for track in tracks:
+    result = result + "<p>" +track[0].get_name()+"</p>"
+
+  return result
+
