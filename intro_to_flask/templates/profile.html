@@ -1,7 +1,53 @@
-{% extends "layout.html" %}
+{% extends "base.html" %}
+
 {% block content %}
-  <div class="jumbo">
-    <h2>Profile<h2>
-    <h3>This is {{ session['email'] }}'s profile page<h3>
+
+
+
+<p class="navbar-text navbar-right text-right text-success">
+	Signed in as 
+	<a href="#" class="navbar-link">{{ session['email'] }}</a>
+</p>
+
+<div class="row" style="margin-top: 70px">
+<form class="form-search" action="{{ url_for('profile') }}" method=post>
+	{{ form.hidden_tag() }}
+
+<div class="form-group {% if form.search.errors %} has-error {% endif %}">
+    {{ form.search.label(class="col-sm-4")}}
+    <div class="input-medium search-query"> 
+        {{ form.search(placeholder="Giorgos Dalaras", class="form-control")}}
+    </div>
+    <p class="col-sm-5 help-block">
+     	{{ form.search.errors[0]}}
+</div>
+
+	<div>
+    <button class="btn btn-lg btn-primary" type="submit">Search</button>
+    </div>
+
+</div>
+</form>
+
+
+
+
+<div class="panel panel-default" style="margin-top: 100px">
+  
+  <div class="panel-heading">Panel heading</div>
+  <div class="panel-body">
+    <p>...</p>
   </div>
+
+
+  <ul class="list-group">
+    <li class="list-group-item">Cras justo odio</li>
+    <li class="list-group-item">Dapibus ac facilisis in</li>
+    <li class="list-group-item">Morbi leo risus</li>
+    <li class="list-group-item">Porta ac consectetur ac</li>
+    <li class="list-group-item">Vestibulum at eros</li>
+  </ul>
+</div>
+
+
 {% endblock %}

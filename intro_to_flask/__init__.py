@@ -13,7 +13,7 @@ app.config["MAIL_PASSWORD"] = '4999yiota'
 from routes import mail
 mail.init_app(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:sc180587@localhost/development'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:123qw@localhost/development'
  
 from models import db
 db.init_app(app)

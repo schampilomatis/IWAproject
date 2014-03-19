@@ -1,6 +1,6 @@
 from intro_to_flask import app
 from flask import Flask, render_template, request, flash, session, redirect, url_for,jsonify
-from forms import ContactForm, SignupForm, SigninForm
+from forms import ContactForm, SignupForm, SigninForm, SearchForm
 from flask.ext.mail import Message, Mail
 from models import db, User
 from flask.ext.wtf import Form
@@ -31,7 +31,7 @@ mail = Mail()
 
 @app.route('/')
 def home():
-  return render_template('home.html')
+  return render_template('index.html')
 
 
 #--------------------------------------------------------------
@@ -51,19 +51,17 @@ def contact():
       return render_template('contact.html', form=form)
     else:
 
-    	msg = Message(form.subject.data, sender='marla.yk@gmail.com', recipients=['marla.yk@gmail.com'])
-    	msg.body = """
-    	From: %s <%s>
-    	%s
-    	""" % (form.name.data, form.email.data, form.message.data)
-    	mail.send(msg)
+      msg = Message(form.subject.data, sender='marla.yk@gmail.com', recipients=['marla.yk@gmail.com'])
+      msg.body = """
+      From: %s <%s>
+      %s
+      """ % (form.name.data, form.email.data, form.message.data)
+      mail.send(msg)
 
-    	return render_template('contact.html', success=True)
+      return render_template('contact.html', success=True)
  
   elif request.method == 'GET':
     return render_template('contact.html', form=form)
-
-
 
 
 
@@ -90,7 +88,7 @@ def signup():
 
 @app.route('/profile')
 def profile():
- 
+  form = SearchForm()
   if 'email' not in session:
     return redirect(url_for('signin'))
  
@@ -99,12 +97,8 @@ def profile():
   #if user is None:
     #return redirect(url_for('signin'))
   #else:
-  return render_template('profile.html')
+  return render_template('profile.html', form=form)
 
-
-@app.route('/tpt')
-def tpt():
-    return render_template('tpt.html')
 
 @app.route('/signin', methods=['GET', 'POST'])
 def signin():
@@ -135,6 +129,15 @@ def signout():
   return redirect(url_for('home'))
 
 
+
+@app.errorhandler(404)
+def not_found(error):
+    return render_template('404.html'), 404
+
+
+@app.errorhandler(500)
+def not_found(error):
+    return render_template('500.html'), 500
 
 #------------------------------------------------------
 #--------    FACEBOOK   -------------------------------
@@ -280,6 +283,9 @@ def songs():
   result = ""
   for track in tracks:
     result = result + "<p>" +track[0].get_name()+"</p>"
-
   return result
 
+
+@app.route('/tpt')
+def tpt():
+    return render_template('tpt.html')
