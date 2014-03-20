@@ -2,32 +2,102 @@
 
 {% block content %}
 
+<script> $(function(){ 
+  $("#location").geocomplete(); 
+  }); 
+</script>
+
+<script type="text/javascript">
+var lo = '{{  location }}';
+
+  if (lo=="Undefined") {
+  $(window).load(function(){
+
+        $('#myModal').modal('show');
+    });
+}
+</script>
+
+<style type="text/css">
+  .pac-container{z-index: 2000 !important;}
+</style>
+
+<div class="container-fluid">
+  <div class="row-fluid">
+    <div class="span2">
+      <!--Sidebar content-->
+
+      <div>
+        <p class="text-left text-success">
+        Signed in as <a href="#" class="navbar-link">{{ username }}</a>
+        </p>
+      </div>
+      <div>
+        <p class="text-left"> <strong >Your current Location is:<span style="color:#0099FF" id ='loc' > {{ location }}</span></strong></p>
+      </div>
+      <div>
+        <!-- Button trigger modal -->
+        <button class="btn btn-info" data-toggle="modal" data-target="#myModal">Change Location</button>
+      </div>
+
+      <div>
+        <!-- Button trigger modal -->
+        <button class="btn btn-info" onclick="UpdateContainer()">Search Event</button>
+      </div>
+
+      <div>
+        <!-- Button trigger modal -->
+        <button class="btn btn-info" onclick="UpdateContainer()">Search Artist</button>
+      </div>
 
 
-<p class="navbar-text navbar-right text-right text-success">
-	Signed in as 
-	<a href="#" class="navbar-link">{{ session['email'] }}</a>
-</p>
 
-<div class="row" style="margin-top: 70px">
-<form class="form-search" action="{{ url_for('profile') }}" method=post>
-	{{ form.hidden_tag() }}
 
-<div class="form-group {% if form.search.errors %} has-error {% endif %}">
-    {{ form.search.label(class="col-sm-4")}}
-    <div class="input-medium search-query"> 
-        {{ form.search(placeholder="Giorgos Dalaras", class="form-control")}}
+
+  </div>
+    <div class="span10" id="BodyContent">
+      <!--Body content-->
+
+
+
+
+
+
+      <div class="row" style="margin-top: 70px">
+        {{ form.hidden_tag() }}
+        <div class="form-group {% if form.search.errors %} has-error {% endif %}">
+        {{ form.search.label(class="col-sm-4")}}
+          <div class="input-medium search-query">
+          <input type="text" class="form-control col-sm-10" placeholder="Search" id="artist">
+          </div>
+        <p class="col-sm-5 help-block"></p>
+        {{ form.search.errors[0]}}
+        <div> 
+          <button class="btn btn-lg btn-primary" value="Search" onclick="getartists()"  id="search_artists"> Search </button>
+        </div>
+      </div>
     </div>
-    <p class="col-sm-5 help-block">
-     	{{ form.search.errors[0]}}
+
+
+
+
+
+
+
+    
+    </div>
+  </div>
 </div>
 
-	<div>
-    <button class="btn btn-lg btn-primary" type="submit">Search</button>
-    </div>
 
-</div>
-</form>
+
+
+
+
+
+
+
+
 
 
 
@@ -35,19 +105,43 @@
 <div class="panel panel-default" style="margin-top: 100px">
   
   <div class="panel-heading">Panel heading</div>
-  <div class="panel-body">
+  <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = 'artist_list'>
     <p>...</p>
   </div>
 
 
-  <ul class="list-group">
-    <li class="list-group-item">Cras justo odio</li>
-    <li class="list-group-item">Dapibus ac facilisis in</li>
-    <li class="list-group-item">Morbi leo risus</li>
-    <li class="list-group-item">Porta ac consectetur ac</li>
-    <li class="list-group-item">Vestibulum at eros</li>
+  <ul class="list-group" id="artist-list">
   </ul>
 </div>
+
+
+
+
+<!-- Modal -->
+
+<div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="myModalLabel">Change your Current Location</h4>
+      </div>
+      <div class="modal-body">
+        <form>
+          <input type="text" class="form-control" id='location'>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        <button type="submit" class="btn btn-primary" onclick="changeLocation()" data-dismiss="modal">Save changes</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
 
 
 {% endblock %}

@@ -8,8 +8,9 @@ from flask_oauth import OAuth
 from flask.ext.social import Social
 from flask.ext.social.datastore import SQLAlchemyConnectionDatastore
 import json
+import urllib2
 from urllib2 import Request, urlopen, URLError
-from RDFhandler import addUser, checkEmail , userType
+from RDFhandler import addUser, checkEmail , userType, data_by_email, update_location
 import musicbrainzngs
 import pylast
 
@@ -77,7 +78,7 @@ def signup():
       return render_template('signup.html', form=form)
     else:
 
-      addUser(None,form.username.data,form.email.data.lower(),form.password.data,form.location.data,"","Normal")
+      addUser(None,form.username.data,form.email.data.lower(),form.password.data,form.location.data,"","Normal", form.lng.data , form.lat.data)
 
       session['email'] = form.email.data.lower()
       return redirect(url_for('profile'))
@@ -86,18 +87,15 @@ def signup():
     return render_template('signup.html', form=form)
 
 
-@app.route('/profile')
+@app.route('/profile', methods=['GET', 'POST'])
 def profile():
   form = SearchForm()
   if 'email' not in session:
     return redirect(url_for('signin'))
- 
-  #user = User.query.filter_by(email = session['email']).first()
- 
-  #if user is None:
-    #return redirect(url_for('signin'))
-  #else:
-  return render_template('profile.html', form=form)
+
+  data = data_by_email(session['email'])
+  print data
+  return render_template('profile.html', form=form, username=data[0], location=data[1] )
 
 
 @app.route('/signin', methods=['GET', 'POST'])
@@ -139,6 +137,18 @@ def not_found(error):
 def not_found(error):
     return render_template('500.html'), 500
 
+
+
+
+@app.route('/changeLocation', methods=['GET', 'POST'])
+def changeLocation():
+
+  location=request.args.get("location")
+  update_location(location, session['email'])
+  return "ok"
+
+
+
 #------------------------------------------------------
 #--------    FACEBOOK   -------------------------------
 #------------------------------------------------------
@@ -174,7 +184,11 @@ def facebook_authorized(resp):
     me = facebook.get('/me')
      
     if checkEmail(me.data['email'])== False :
-      addUser(me.data['id'],me.data['username'], me.data['email'], 'abcde',me.data['location']['name'],resp['access_token'],"facebook")
+      url = "http://graph.facebook.com/"+ me.data['location']['id']
+      result = urllib2.urlopen(url).read()
+      result = json.loads(result)
+
+      addUser(me.data['id'],me.data['username'], me.data['email'], 'abcde',me.data['location']['name'],resp['access_token'],"facebook",str(result['location']['longitude']),str(result['location']['latitude']))
       session['email'] = me.data['email'] 
       return redirect(url_for('profile'))      
     else:
@@ -237,26 +251,27 @@ def authorized(resp):
 
     res = json.load(res)
     if checkEmail(res['email'])== False :
-      addUser(res['id'],res['name'],res['email'],"123",None, access_token , "google")
+
+      addUser(res['id'],res['name'],res['email'],"123",None, access_token , "google",None,None)
       session['email'] = res['email']
+
       return  redirect(url_for('profile'))    
     else:
       if userType(res['email']) == "google":
         session['email'] = res['email']
+
         return  redirect(url_for('profile'))
       else:
         form = SigninForm()
         form.email.errors = ["Wrong Account Type"]
         return render_template('signin.html', form=form)
-    # session['email'] = json.load(res)['email']
-    # return redirect(url_for('profile'))
 
 @google.tokengetter
 def get_access_token():
     return session.get('access_token')
 
 
-@app.route('/artists',methods=['GET', 'POST'])
+@app.route('/artists', methods=['GET', 'POST'])
 def artists():
   q = request.args.get('artist')
   musicbrainzngs.set_useragent("test",1,None)
@@ -268,7 +283,7 @@ def artists():
 @app.route('/songs',methods=['GET', 'POST'])
 def songs():
   id = request.args.get('id')
-  print id
+
 
   API_KEY = '4bea9a7cfe15b09d2ada827592605ee0'
   API_SECRET = '13b346b26064a3537796608d27802711'
@@ -282,10 +297,15 @@ def songs():
 
   result = ""
   for track in tracks:
-    result = result + "<p>" +track[0].get_name()+"</p>"
+    result = result + "<p><a Onclick=\'getvideo(\""+str(track[0]).decode('utf-8')+"\")\'>"+track[0].get_name()+"</a> <button onclick='likeSong(\""+track[0].get_id()+"\")' >LIKE</button></p>"
   return result
 
+@app.route('/like')
+def like():
+  if 'email' not in session:
+    return "Not logged in"
 
-@app.route('/tpt')
-def tpt():
-    return render_template('tpt.html')
+  ArtistId = request.args.get('id')
+  likeType = request.args.get('likeType')
+  RDFlike(ArtistId, likeType ,session['email'])
+  return "Ok"
