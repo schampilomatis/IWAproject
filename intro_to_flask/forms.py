@@ -57,6 +57,7 @@ class SigninForm(Form):
       self.email.errors.append("Invalid e-mail or password")
       return False
 
+
 class SearchForm(Form):
   search = TextField("Search Artist", [validators.Required("Please enter an Artist.")])
   submit = SubmitField("Search")

@@ -10,7 +10,7 @@ from flask.ext.social.datastore import SQLAlchemyConnectionDatastore
 import json
 import urllib2
 from urllib2 import Request, urlopen, URLError
-from RDFhandler import addUser, checkEmail , userType, data_by_email, update_location
+from RDFhandler import addUser, checkEmail , userType, data_by_email, update_location ,latlng_by_email
 import musicbrainzngs
 import pylast
 
@@ -89,13 +89,13 @@ def signup():
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
-  form = SearchForm()
+
   if 'email' not in session:
     return redirect(url_for('signin'))
 
   data = data_by_email(session['email'])
   print data
-  return render_template('profile.html', form=form, username=data[0], location=data[1] )
+  return render_template('profile.html', username=data[0], location=data[1] )
 
 
 @app.route('/signin', methods=['GET', 'POST'])
@@ -138,14 +138,24 @@ def not_found(error):
     return render_template('500.html'), 500
 
 
-
-
 @app.route('/changeLocation', methods=['GET', 'POST'])
 def changeLocation():
 
   location=request.args.get("location")
-  update_location(location, session['email'])
+  lat=request.args.get("lat")
+  lng=request.args.get("lng")
+  print session['email']
+  update_location(location,lat,lng, session['email'])
   return "ok"
+
+@app.route('/getLatLng', methods=['GET', 'POST'])
+def getLatLng():
+  data =  latlng_by_email(session['email'])
+  
+  result = {"lat": data[0] , "lng" : data[1] }
+  return json.dumps(result)
+
+
 
 
 
@@ -252,7 +262,7 @@ def authorized(resp):
     res = json.load(res)
     if checkEmail(res['email'])== False :
 
-      addUser(res['id'],res['name'],res['email'],"123",None, access_token , "google",None,None)
+      addUser(res['id'],res['name'],res['email'],"123",None, access_token , "google",None, None)
       session['email'] = res['email']
 
       return  redirect(url_for('profile'))    
@@ -269,6 +279,10 @@ def authorized(resp):
 @google.tokengetter
 def get_access_token():
     return session.get('access_token')
+
+
+
+##############-------------------------------------------------------------------------
 
 
 @app.route('/artists', methods=['GET', 'POST'])
@@ -297,7 +311,7 @@ def songs():
 
   result = ""
   for track in tracks:
-    result = result + "<p><a Onclick=\'getvideo(\""+str(track[0]).decode('utf-8')+"\")\'>"+track[0].get_name()+"</a> <button onclick='likeSong(\""+track[0].get_id()+"\")' >LIKE</button></p>"
+    result = result + "<div class='row'><a Onclick=\'getvideo(\""+str(track[0]).decode('utf-8')+"\")\'>"+track[0].get_name()+"</a> <button onclick='likeSong(\""+track[0].get_id()+"\")' class='btn-xs pull-right btn btn-primary' >LIKE</button></div>"
   return result
 
 @app.route('/like')
@@ -309,3 +323,14 @@ def like():
   likeType = request.args.get('likeType')
   RDFlike(ArtistId, likeType ,session['email'])
   return "Ok"
+
+
+
+
+@app.route('/browseArtists')
+def browseArtists():
+  return render_template('browseArtists.html')
+
+@app.route('/test')
+def test():
+  return render_template('test.html')

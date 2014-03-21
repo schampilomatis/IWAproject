@@ -1,22 +1,9 @@
 from SPARQLWrapper import SPARQLWrapper, JSON
 import uuid
 from werkzeug import generate_password_hash, check_password_hash
-sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
-sparql.setQuery("""
-PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-INSERT DATA
-{ <http://example/book3> a "sdlfs" . }  
-""")
-sparql.method = 'POST'
-#sparql.setReturnFormat(JSON)
-#results = sparql.query().convert()
-sparql.query()
-#for result in results["results"]["bindings"]:
-#	print(result["A"]["value"])
 
 
-
-def addUser( userid ,username , email , password , location , oauthtoken ,authtype,lng,lat):
+def addUser( userid ,username , email , password , location , oauthtoken ,authtype, lng, lat):
 
 	if userid == None:
 	   	userid = str(uuid.uuid1())
@@ -40,9 +27,7 @@ def addUser( userid ,username , email , password , location , oauthtoken ,authty
 					  <http://example/hasAuthType> <http://example/"""+ authtype +""">
 	 }"""
 
-	print q
 	sparql.setQuery(q)
-	
 	sparql.method = 'POST'
 	sparql.query()
 	
@@ -98,7 +83,6 @@ def userType(email):
 
 
 
-
 def data_by_email(email):
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
 	q = """ SELECT ?username ?location ?userid WHERE {
@@ -127,15 +111,41 @@ def data_by_email(email):
 	return data
 
 
-def update_location(location, email):
+def latlng_by_email(email):
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
+	q = """ SELECT ?lat ?lng  WHERE {
+	?userid a <http://example/User> ;
+	       <http://example/hasEmail> '""" + email + """';	       
+	       <http://example/hasLat> ?lat;
+	       <http://example/hasLng> ?lng.
+	}"""
+	
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q)
+	sparql.method = 'GET'
+	results = sparql.query().convert()
+	ltnlng = []
+
+	ltnlng.append(results['results']['bindings'][0]['lat']['value'])
+	ltnlng.append(results['results']['bindings'][0]['lng']['value'])
+	return ltnlng
+
+
+def update_location(location,lat, lng ,email):
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
 	q = """
-	DELETE {?userid <http://example/hasLocation> ?location }
-	INSERT {?userid <http://example/hasLocation> '""" + location+"""' } 
+	DELETE {?userid <http://example/hasLocation> ?location.
+					?userid <http://example/hasLat> ?lat.
+					?userid <http://example/hasLng> ?lng. }
+	INSERT {?userid <http://example/hasLocation> '""" + location+"""'.
+			?userid <http://example/hasLat> '""" + lat+"""'.
+			?userid <http://example/hasLng> '""" + lng+"""'. } 
 	WHERE{
 	?userid <http://example/hasEmail>	'"""+email+"""' .
 			OPTIONAL{
 				?userid <http://example/hasLocation> ?location.
+				?userid <http://example/hasLat> ?lat.
+				?userid <http://example/hasLng> ?lng.
 			}
 	        
 	}"""

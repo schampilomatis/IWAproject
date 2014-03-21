@@ -54,7 +54,12 @@
     </div>
     <p class="col-sm-5 help-block">
     {{ form.location.errors[0] }}
-  </div>  
+  </div> 
+
+  <div>
+    {{ form.lng() }}
+    {{ form.lat() }}
+  </div>
 
   <div>
   <button class="btn btn-lg btn-primary" type="submit">Sign up</button>

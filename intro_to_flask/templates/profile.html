@@ -3,7 +3,7 @@
 {% block content %}
 
 <script> $(function(){ 
-  $("#location").geocomplete(); 
+  $("#location").geocomplete({details: "form"}); 
   }); 
 </script>
 
@@ -47,38 +47,18 @@ var lo = '{{  location }}';
 
       <div>
         <!-- Button trigger modal -->
-        <button class="btn btn-info" onclick="UpdateContainer()">Search Artist</button>
+        <button class="btn btn-info" onclick="UpdateContainer2()">Search Artist</button>
       </div>
-
-
 
 
 
   </div>
     <div class="span10" id="BodyContent">
       <!--Body content-->
-
-
-
-
-
-
-      <div class="row" style="margin-top: 70px">
-        {{ form.hidden_tag() }}
-        <div class="form-group {% if form.search.errors %} has-error {% endif %}">
-        {{ form.search.label(class="col-sm-4")}}
-          <div class="input-medium search-query">
-          <input type="text" class="form-control col-sm-10" placeholder="Search" id="artist">
-          </div>
-        <p class="col-sm-5 help-block"></p>
-        {{ form.search.errors[0]}}
-        <div> 
-          <button class="btn btn-lg btn-primary" value="Search" onclick="getartists()"  id="search_artists"> Search </button>
-        </div>
-      </div>
+      
     </div>
-
-
+    
+    </div>
 
 
 
@@ -88,33 +68,6 @@ var lo = '{{  location }}';
     </div>
   </div>
 </div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<div class="panel panel-default" style="margin-top: 100px">
-  
-  <div class="panel-heading">Panel heading</div>
-  <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = 'artist_list'>
-    <p>...</p>
-  </div>
-
-
-  <ul class="list-group" id="artist-list">
-  </ul>
-</div>
-
-
 
 
 <!-- Modal -->
@@ -129,6 +82,8 @@ var lo = '{{  location }}';
       <div class="modal-body">
         <form>
           <input type="text" class="form-control" id='location'>
+          <input name="lat"  type="hidden" class="form-control" id="lat">
+          <input name="lng"  type="hidden" class="form-control" id="lng">
         </form>
       </div>
       <div class="modal-footer">
