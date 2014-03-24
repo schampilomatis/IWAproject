@@ -26,49 +26,78 @@ var lo = '{{  location }}';
   <div class="row-fluid">
     <div class="span2">
       <!--Sidebar content-->
-
       <div>
         <p class="text-left text-success">
         Signed in as <a href="#" class="navbar-link">{{ username }}</a>
         </p>
       </div>
-      <div>
-        <p class="text-left"> <strong >Your current Location is:<span style="color:#0099FF" id ='loc' > {{ location }}</span></strong></p>
-      </div>
-      <div>
-        <!-- Button trigger modal -->
-        <button class="btn btn-info" data-toggle="modal" data-target="#myModal">Change Location</button>
-      </div>
 
       <div>
+        <p class="text-left"> <strong >Your current Location is:<span style="color:#0099FF" id ='loc' >{{ location }}</span></strong></p>
+      </div> 
+    <div class="btn-group">
+      <div>
         <!-- Button trigger modal -->
-        <button class="btn btn-info" onclick="UpdateContainer()">Search Event</button>
+        <button class="save_button btn btn-primary div_space" data-toggle="modal" data-target="#myModal">Change Location</button>
       </div>
 
       <div>
         <!-- Button trigger modal -->
-        <button class="btn btn-info" onclick="UpdateContainer2()">Search Artist</button>
+        <button class="save_button btn btn-primary div_space" onclick="searchArtists()">Search Artist</button>
       </div>
 
+      <div>
+        <!-- Button trigger modal -->
+        <button class="save_button btn btn-primary div_space" onclick="browseEvent()">Upcoming Event</button>
+      </div>
 
+      <div>
+        <!-- Button trigger modal -->
+        <button class="save_button btn btn-primary div_space" onclick="demandEvent()">Demand Event</button>
+      </div>
 
+    </div>
   </div>
+
+
+
     <div class="span10" id="BodyContent">
       <!--Body content-->
-      
+  
+    <h1>Welcome {{ username }} </h1>
+
+    <div class="row div_space">
+      <div class="col-md-6">
+        <div class="panel">
+          <div class="panel-heading"> 
+            <h2 class="panel-title">Your Favorite Artists</h2>
+          </div>
+          <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = 'favouriteArtist'>
+          </div>
+          <script type="text/javascript">
+          favouriteArtist();
+          </script>
+        </div>
     </div>
-    
-    </div>
 
-
-
-
-
-    
-    </div>
-  </div>
+    <div class="col-lg-6">
+      <div class="panel panel-primary">
+        <div class="panel-heading"> 
+          <h2 class="panel-title">My Events</h2>
+        </div>
+            <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = ''>
+            </div>
+        </div>
+  </div>  
 </div>
 
+
+
+
+
+</div>    
+    </div>
+</div>
 
 <!-- Modal -->
 
@@ -94,9 +123,6 @@ var lo = '{{  location }}';
   </div>
 </div>
 
-
-
-
-
+<script src="static/js/maps.js"></script>
 
 {% endblock %}

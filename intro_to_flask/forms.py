@@ -60,7 +60,6 @@ class SigninForm(Form):
 
 class SearchForm(Form):
   search = TextField("Search Artist", [validators.Required("Please enter an Artist.")])
-  submit = SubmitField("Search")
 
   def __init__(self, *args, **kwargs):
     Form.__init__(self, *args, **kwargs) 

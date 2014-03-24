@@ -6,7 +6,7 @@ from werkzeug import generate_password_hash, check_password_hash
 def addUser( userid ,username , email , password , location , oauthtoken ,authtype, lng, lat):
 
 	if userid == None:
-	   	userid = str(uuid.uuid1())
+	   userid = str(uuid.uuid1())
 	
 	password = generate_password_hash(password)
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
@@ -18,7 +18,7 @@ def addUser( userid ,username , email , password , location , oauthtoken ,authty
 		<http://example/hasLat>  '"""+lat+"""';"""
 	q = """
 	INSERT DATA
-	{ <http://example.com/"""+ userid +""">     a             <http://example/User> ;
+	{ <http://example/"""+ userid +""">     a             <http://example/User> ;
 					  <http://example/hasPassword> '""" + password+"""';
 					  <http://example/hasName> '""" + username+"""';
 					  <http://example/hasEmail>	'"""+email+"""';
@@ -46,7 +46,6 @@ def checkEmail(email) :
 	results = sparql.query().convert()
 
 	return results["boolean"]
-
 
 
 def authenticate(email,password):
@@ -131,6 +130,7 @@ def latlng_by_email(email):
 	return ltnlng
 
 
+
 def update_location(location,lat, lng ,email):
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
 	q = """
@@ -155,17 +155,151 @@ def update_location(location,lat, lng ,email):
 	sparql.query()
 
 
-def RDFlike( artistid, likeType , email):
 
-	userid = getid_by_email(email)
+def RDFlike(artistid, likeType , email, artistname):
+
+	userid = data_by_email(email)[2]
 
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
 	q = """
 	INSERT DATA
 	{ <"""+userid+"""> <http://example/likes"""+likeType+"""> <http://musicbrainz.org/artist/""" +artistid+""">.
+	<http://musicbrainz.org/artist/""" +artistid+"""> <http://example/hasName> '"""+artistname+"""'.
 	}"""
 
 	sparql.setQuery(q)
 	
 	sparql.method = 'POST'
 	sparql.query()
+
+
+
+def add_event(city,latitude,longitude,start_time,description,source,artist,mbid,userid):
+	
+	if (checkEvent_by_city_name(artist,city)):
+		return False
+
+	eventid = str(uuid.uuid1())
+	
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
+	q = """
+	INSERT DATA
+	{		<http://example/"""+ eventid +""">     a             <http://example/Event>;
+													   <http://example/hasLat> '""" + str(latitude)+"""';
+										      		   <http://example/hasLng> '""" + str(longitude)+"""';
+													   <http://example/hasCity> '""" + str(city)+"""';
+			 										   <http://example/hasStartTime> '""" + str(start_time)+"""';
+			 										   <http://example/hasDescription> '""" +description+"""';
+			 										   <http://example/hasSource> '""" + str(source)+"""';
+			 										   <http://example/hasArtistName> '""" + str(artist)+"""';
+			 										   <http://example/hasCreatedByUserid> <""" + str(userid)+""">;
+			 										   <http://example/hasArtistId>  <http://www.musicbrainz.org/artist/"""+ mbid+""">.
+        
+	}"""
+	
+	sparql.setQuery(q)
+	sparql.method = 'POST'
+	sparql.query()
+	return True
+
+
+def checkEvent_by_city_name(artist,city):
+
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
+	q = """
+	ASK
+	{
+	?eventid a <http://example/Event>;
+			   <http://example/hasArtistName> 	'""" + str(artist)+"""';
+			   <http://example/hasCity> 	'""" + str(city)+"""'.
+
+	}"""
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q)
+	sparql.method = 'GET'
+	results = sparql.query().convert()
+
+	return results["boolean"]
+
+
+def checkEvent_by_lat_long(lat,lng,mbid):
+
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
+	q = """
+	ASK
+	{
+	?eventid  <http://example/hasArtistId>  <http://www.musicbrainz.org/artist/"""+ mbid+""">;
+			   <http://example/hasLat> 	'""" + lat + """';
+			   <http://example/hasLong> 	'""" + lng +"""'.
+
+	}"""
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q)
+	sparql.method = 'GET'
+	results = sparql.query().convert()
+
+	return results["boolean"]
+
+
+def show_description(mbid,city):
+
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
+	q = """ 
+	SELECT ?description   
+	WHERE { ?eventid a <http://example/Event>;
+					   <http://example/hasCity> '""" + city + """';
+	       			   <http://example/hasArtistId>  <http://www.musicbrainz.org/artist/"""+ mbid+""">;      
+	   				   <http://example/hasDescription>  ?description.
+	}"""
+	
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q)
+	sparql.method = 'GET'
+	results = sparql.query().convert()
+
+	try:
+		return results['results']['bindings'][0]['description']['value']
+	except IndexError:
+		return "No Description Found for that Event"
+
+
+
+
+
+
+def create_event(mbid,artist,email):
+	latlng   = latlng_by_email(email)
+	city     = data_by_email(email)[1]
+	username = data_by_email(email)[0]
+	userid   = data_by_email(email)[2]
+
+	lat = latlng[0]
+	lng = latlng[1]
+	start_time  = "to be anounced..."
+	description = "created by user " +username
+	source      = "manually"
+
+	if (checkEvent_by_lat_long(lat,lng,mbid)):
+		return False
+
+	return add_event(city,lat,lng,start_time,description,source,artist,mbid,userid)
+
+
+
+def favourite_artist(email):
+
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
+	q = """ 
+	SELECT ?artistname   
+	WHERE { ?userid  <http://example/hasEmail>	'"""+email+"""' ;
+					 <http://example/likesArtist> ?artistid.
+			?artistid <http://example/hasName> ?artistname.
+
+	}"""
+	
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q)
+	sparql.method = 'GET'
+	results = sparql.query().convert()
+	
+	return results['results']['bindings']

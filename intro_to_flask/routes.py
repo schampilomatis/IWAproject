@@ -10,9 +10,13 @@ from flask.ext.social.datastore import SQLAlchemyConnectionDatastore
 import json
 import urllib2
 from urllib2 import Request, urlopen, URLError
-from RDFhandler import addUser, checkEmail , userType, data_by_email, update_location ,latlng_by_email
+from RDFhandler import addUser, checkEmail , userType, data_by_email, update_location ,latlng_by_email, add_event, create_event, show_description, RDFlike, favourite_artist
 import musicbrainzngs
 import pylast
+from RDFeventhandler import getartistinfo, request_events
+import codecs
+import sys
+
 
 #--------------------------------------------------------------------------------------------------
 
@@ -52,7 +56,7 @@ def contact():
       return render_template('contact.html', form=form)
     else:
 
-      msg = Message(form.subject.data, sender='marla.yk@gmail.com', recipients=['marla.yk@gmail.com'])
+      msg = Message(form.subject.data, sender='vu.amsterdam.iwa@gmail.com', recipients=['vu.amsterdam.iwa@gmail.com'])
       msg.body = """
       From: %s <%s>
       %s
@@ -63,7 +67,6 @@ def contact():
  
   elif request.method == 'GET':
     return render_template('contact.html', form=form)
-
 
 
 @app.route('/signup', methods=['GET', 'POST'])
@@ -87,8 +90,10 @@ def signup():
     return render_template('signup.html', form=form)
 
 
+
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
+  form = SearchForm()
 
   if 'email' not in session:
     return redirect(url_for('signin'))
@@ -96,6 +101,7 @@ def profile():
   data = data_by_email(session['email'])
   print data
   return render_template('profile.html', username=data[0], location=data[1] )
+
 
 
 @app.route('/signin', methods=['GET', 'POST'])
@@ -127,6 +133,7 @@ def signout():
   return redirect(url_for('home'))
 
 
+#----------ERROR HANDLING PAGES------------------
 
 @app.errorhandler(404)
 def not_found(error):
@@ -137,6 +144,7 @@ def not_found(error):
 def not_found(error):
     return render_template('500.html'), 500
 
+#----------------------------------------------------
 
 @app.route('/changeLocation', methods=['GET', 'POST'])
 def changeLocation():
@@ -148,15 +156,14 @@ def changeLocation():
   update_location(location,lat,lng, session['email'])
   return "ok"
 
+
 @app.route('/getLatLng', methods=['GET', 'POST'])
 def getLatLng():
   data =  latlng_by_email(session['email'])
   
   result = {"lat": data[0] , "lng" : data[1] }
+
   return json.dumps(result)
-
-
-
 
 
 #------------------------------------------------------
@@ -282,7 +289,7 @@ def get_access_token():
 
 
 
-##############-------------------------------------------------------------------------
+#------------------------------------------------------------------------
 
 
 @app.route('/artists', methods=['GET', 'POST'])
@@ -290,7 +297,6 @@ def artists():
   q = request.args.get('artist')
   musicbrainzngs.set_useragent("test",1,None)
   artists = musicbrainzngs.search_artists(q)
-
   return jsonify(artists)
 
 
@@ -311,7 +317,7 @@ def songs():
 
   result = ""
   for track in tracks:
-    result = result + "<div class='row'><a Onclick=\'getvideo(\""+str(track[0]).decode('utf-8')+"\")\'>"+track[0].get_name()+"</a> <button onclick='likeSong(\""+track[0].get_id()+"\")' class='btn-xs pull-right btn btn-primary' >LIKE</button></div>"
+    result = result + "<p><strong><a style='text-decoration: none; cursor: pointer' Onclick=\'getvideo(\""+str(track[0]).decode('utf-8')+"\")\'>"+track[0].get_name()+"</a></strong> <button onclick='likeSong(\""+track[0].get_id()+"\")' class='btn btn-xs pull-right  btn-primary'> Like! </button></p>"
   return result
 
 @app.route('/like')
@@ -320,17 +326,105 @@ def like():
     return "Not logged in"
 
   ArtistId = request.args.get('id')
+  ArtistName = request.args.get('name')
   likeType = request.args.get('likeType')
-  RDFlike(ArtistId, likeType ,session['email'])
+  RDFlike(ArtistId, likeType ,session['email'], ArtistName)
   return "Ok"
 
 
+@app.route('/createEvent')
+def createEvent():
+
+  mbid    = request.args.get("mbid")
+  artist  = request.args.get("artist")
+  print mbid,artist
+  boolean = create_event(mbid ,artist, session['email'])
+  if boolean: 
+    return "OK"
+  else:
+    return "already exist"
 
 
-@app.route('/browseArtists')
+@app.route('/addEvent' , methods = ['GET','POST'])
+def addEvent():
+
+  if ((request.args.get('description') == None) or (request.args.get('description') == " ") or (request.args.get('description') == '')):
+    desc='sorry no description is provided for this event...'    
+  else:
+    city_dec     = request.args.get('city') 
+    desc       = request.args.get('description')
+
+ 
+  city_encoded = str(city_dec.encode('utf-8', 'ignore'))
+  city_decoded = str(city_dec.decode('utf-8', 'ignore'))
+  unicodedata.city_decoded(u"\xfc")
+  desc_encoded = str(desc.encode('utf-8', 'ignore'))
+  desc_decoded = str(desc.decode('utf-8', 'ignore'))
+  
+
+  longitude    = request.args.get('longitude')
+  latitude     = request.args.get('latitude')
+  start_time   = request.args.get('start_time')
+  source       = request.args.get('source')
+  artist       = request.args.get('artist')
+  mbid         = request.args.get('mbid')
+  userid       = data_by_email(session['email'])[2]
+
+  add_event(city_decoded,latitude,longitude,start_time,desc_decoded,source,artist,mbid,userid)
+
+  return "Ok"
+
+
+@app.route('/showDescription' , methods = ['GET','POST'])
+def showDescription():
+  mbid = request.args.get('mbid')
+  city = request.args.get('city')
+  desc = show_description(mbid,city)
+
+  return desc
+
+
+@app.route('/favouriteArtist')
+def favouriteArtist():
+
+  Fartist= favourite_artist(session['email'])
+  print Fartist
+  return json.dumps(Fartist)
+
+
+@app.route('/searchArtists')
 def browseArtists():
+  form = SearchForm()
   return render_template('browseArtists.html')
 
-@app.route('/test')
-def test():
-  return render_template('test.html')
+
+@app.route('/browseEvent')
+def browseEvent():
+  return render_template('BrowseEvents.html')
+
+
+@app.route('/demandEvent')
+def demandEvent():
+  return render_template('createEvent.html')
+
+
+@app.route('/artistinfo',methods=['GET', 'POST'])
+def artistinfo():
+  artistid = request.args.get('id')
+  artistname = request.args.get('name')
+  return getartistinfo(artistid,artistname)
+
+
+@app.route('/requestEvents' , methods = ['GET','POST'])
+def requestEvents():
+  mbid = request.args.get('mbid')
+  return json.dumps(request_events(mbid))
+
+
+@app.route('/vote' , methods = ['GET','POST'])
+def vote():
+  eventid = request.args.get('eventid')
+
+  event_vote(eventid,session['email'])
+  return "ok"
+

@@ -1,6 +1,6 @@
 var map;
 var markers = [];
-var bounds =new google.maps.LatLngBounds();
+var bounds = new google.maps.LatLngBounds();
 var infoWindow = null;
 
 
