@@ -157,15 +157,24 @@ def update_location(location,lat, lng ,email):
 
 
 def RDFlike(artistid, likeType , email, artistname):
-
 	userid = data_by_email(email)[2]
-
 	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
-	q = """
-	INSERT DATA
-	{ <"""+userid+"""> <http://example/likes"""+likeType+"""> <http://musicbrainz.org/artist/""" +artistid+""">.
-	<http://musicbrainz.org/artist/""" +artistid+"""> <http://example/hasName> '"""+artistname+"""'.
-	}"""
+	
+
+	if likeType == "Artist":
+
+		sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1/statements")
+		q = """
+		INSERT DATA
+		{ <"""+userid+"""> <http://example/likes"""+likeType+"""> <http://musicbrainz.org/artist/""" +artistid+""">.
+		<http://musicbrainz.org/artist/""" +artistid+"""> <http://example/hasName> '"""+artistname+"""'.
+		}"""
+	else:
+		q = """
+		INSERT DATA
+		{ <"""+userid+"""> <http://example/likes"""+likeType+"""> <http://example/song/""" +artistname+""">.
+		}"""
+
 
 	sparql.setQuery(q)
 	
@@ -193,7 +202,7 @@ def add_event(city,latitude,longitude,start_time,description,source,artist,mbid,
 			 										   <http://example/hasSource> '""" + str(source)+"""';
 			 										   <http://example/hasArtistName> '""" + str(artist)+"""';
 			 										   <http://example/hasCreatedByUserid> <""" + str(userid)+""">;
-			 										   <http://example/hasArtistId>  <http://www.musicbrainz.org/artist/"""+ mbid+""">.
+			 										   <http://example/hasArtistId>  <http://musicbrainz.org/artist/"""+ mbid+""">.
         
 	}"""
 	
@@ -228,11 +237,12 @@ def checkEvent_by_lat_long(lat,lng,mbid):
 	q = """
 	ASK
 	{
-	?eventid  <http://example/hasArtistId>  <http://www.musicbrainz.org/artist/"""+ mbid+""">;
+	?eventid  <http://example/hasArtistId>  <http://musicbrainz.org/artist/"""+ mbid+""">;
 			   <http://example/hasLat> 	'""" + lat + """';
 			   <http://example/hasLong> 	'""" + lng +"""'.
 
 	}"""
+	print q
 	sparql.setReturnFormat(JSON)
 	sparql.setQuery(q)
 	sparql.method = 'GET'
@@ -248,7 +258,7 @@ def show_description(mbid,city):
 	SELECT ?description   
 	WHERE { ?eventid a <http://example/Event>;
 					   <http://example/hasCity> '""" + city + """';
-	       			   <http://example/hasArtistId>  <http://www.musicbrainz.org/artist/"""+ mbid+""">;      
+	       			   <http://example/hasArtistId>  <http://musicbrainz.org/artist/"""+ mbid+""">;      
 	   				   <http://example/hasDescription>  ?description.
 	}"""
 	
@@ -303,3 +313,27 @@ def favourite_artist(email):
 	results = sparql.query().convert()
 	
 	return results['results']['bindings']
+
+
+
+def oauth_type(email):
+
+	sparql = SPARQLWrapper("http://localhost:8080/openrdf-sesame/repositories/1")
+	q = """ 
+	SELECT ?authtype  
+	WHERE {
+	?userid a <http://example/User> ;
+	       <http://example/hasEmail> '""" + email + """';	       
+	       <http://example/hasAuthType> ?authtype.
+	}"""
+	
+	
+	sparql.setReturnFormat(JSON)
+	sparql.setQuery(q)
+	sparql.method = 'GET'
+	results = sparql.query().convert()
+	
+	
+	return results['results']['bindings'][0]['authtype']['value']
+
+

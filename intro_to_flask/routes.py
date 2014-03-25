@@ -10,13 +10,15 @@ from flask.ext.social.datastore import SQLAlchemyConnectionDatastore
 import json
 import urllib2
 from urllib2 import Request, urlopen, URLError
-from RDFhandler import addUser, checkEmail , userType, data_by_email, update_location ,latlng_by_email, add_event, create_event, show_description, RDFlike, favourite_artist
+from RDFhandler import addUser, checkEmail , userType, data_by_email, update_location ,latlng_by_email, add_event, create_event, show_description, RDFlike, favourite_artist,oauth_type
 import musicbrainzngs
 import pylast
-from RDFeventhandler import getartistinfo, request_events
-import codecs
-import sys
-
+from pylast import _extract
+from RDFeventhandler import getartistinfo, request_events, getuserevents,event_vote, getinteresting
+from xml.dom.minidom import parseString
+from math import radians, cos, sin, asin, sqrt
+from operator import itemgetter
+from pylast import _extract
 
 #--------------------------------------------------------------------------------------------------
 
@@ -93,14 +95,14 @@ def signup():
 
 @app.route('/profile', methods=['GET', 'POST'])
 def profile():
-  form = SearchForm()
 
   if 'email' not in session:
     return redirect(url_for('signin'))
 
   data = data_by_email(session['email'])
-  print data
-  return render_template('profile.html', username=data[0], location=data[1] )
+  oauthType = oauth_type(session['email'])[15:]
+
+  return render_template('profile.html', username=data[0], location=data[1], userid=data[2][15:] ,oauthType=oauthType)
 
 
 
@@ -296,7 +298,7 @@ def get_access_token():
 def artists():
   q = request.args.get('artist')
   musicbrainzngs.set_useragent("test",1,None)
-  artists = musicbrainzngs.search_artists(q)
+  artists = musicbrainzngs.search_artists(q,["ended"])
   return jsonify(artists)
 
 
@@ -313,11 +315,12 @@ def songs():
   network = pylast.LastFMNetwork(api_key=API_KEY,api_secret=API_SECRET,username=username,password_hash=password_hash)
 
   fetchedArtist = network.get_artist_by_mbid(id)
-  tracks = fetchedArtist.get_top_tracks()
+  tracks = fetchedArtist._request("artist.getTopTracks", True)
+  result = ""  
 
-  result = ""
-  for track in tracks:
-    result = result + "<p><strong><a style='text-decoration: none; cursor: pointer' Onclick=\'getvideo(\""+str(track[0]).decode('utf-8')+"\")\'>"+track[0].get_name()+"</a></strong> <button onclick='likeSong(\""+track[0].get_id()+"\")' class='btn btn-xs pull-right  btn-primary'> Like! </button></p>"
+  for track in tracks.getElementsByTagName('track'):
+    name = track.getElementsByTagName('name')[0].firstChild.nodeValue
+    result = result + "<p ><strong><a style='text-decoration: none; cursor: pointer' Onclick=\'getvideo(\""+fetchedArtist.get_name()+" "+name+"\")\'>"+name+"</a></strong> <button onclick='likeSong(\""+name.replace (" ", "_")+"\")' class='btn-xs pull-right btn btn-primary'>Like</button></p>"
   return result
 
 @app.route('/like')
@@ -328,6 +331,7 @@ def like():
   ArtistId = request.args.get('id')
   ArtistName = request.args.get('name')
   likeType = request.args.get('likeType')
+
   RDFlike(ArtistId, likeType ,session['email'], ArtistName)
   return "Ok"
 
@@ -351,13 +355,11 @@ def addEvent():
   if ((request.args.get('description') == None) or (request.args.get('description') == " ") or (request.args.get('description') == '')):
     desc='sorry no description is provided for this event...'    
   else:
-    city_dec     = request.args.get('city') 
     desc       = request.args.get('description')
 
- 
+  city_dec     = request.args.get('city') 
   city_encoded = str(city_dec.encode('utf-8', 'ignore'))
   city_decoded = str(city_dec.decode('utf-8', 'ignore'))
-  unicodedata.city_decoded(u"\xfc")
   desc_encoded = str(desc.encode('utf-8', 'ignore'))
   desc_decoded = str(desc.decode('utf-8', 'ignore'))
   
@@ -370,7 +372,7 @@ def addEvent():
   mbid         = request.args.get('mbid')
   userid       = data_by_email(session['email'])[2]
 
-  add_event(city_decoded,latitude,longitude,start_time,desc_decoded,source,artist,mbid,userid)
+  add_event(city_encoded,latitude,longitude,start_time,desc_encoded,source,artist,mbid,userid)
 
   return "Ok"
 
@@ -394,7 +396,6 @@ def favouriteArtist():
 
 @app.route('/searchArtists')
 def browseArtists():
-  form = SearchForm()
   return render_template('browseArtists.html')
 
 
@@ -428,3 +429,43 @@ def vote():
   event_vote(eventid,session['email'])
   return "ok"
 
+
+@app.route('/getmyEvents')
+def getmyEvents():
+  myEvents = getuserevents(session['email'])
+
+  return json.dumps(myEvents)
+
+@app.route('/getinterestingEvents')
+def getinterestingEvents():
+  myEvents = getinteresting(session['email'])
+  userdata = latlng_by_email(session['email'])
+  userlat = userdata[0]
+  userlng = userdata[1]
+  result = []
+
+  
+  for event in myEvents:
+    dist = haversine(float(userlng),float(userlat),float(event['lng']['value']),float(event['lat']['value']))
+    result.append((event['location']['value'] , event['artist']['value'],event['votes']['value'] ,dist ,event['eventid']['value']))
+
+  result = sorted(result, key=itemgetter(3))
+
+  return json.dumps(result)
+
+
+
+def haversine(lon1, lat1, lon2, lat2):
+  """
+  Calculate the great circle distance between two points 
+  on the earth (specified in decimal degrees)
+  """
+  # convert decimal degrees to radians 
+  lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
+  # haversine formula 
+  dlon = lon2 - lon1 
+  dlat = lat2 - lat1 
+  a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+  c = 2 * asin(sqrt(a)) 
+  km = 6367 * c
+  return km

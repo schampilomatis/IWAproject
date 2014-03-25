@@ -3,7 +3,10 @@
 {% block content %}
 
 <script> $(function(){ 
-  $("#location").geocomplete({details: "form"}); 
+  $("#location").geocomplete(
+    { details: "form" ,
+    types:["(cities)"]
+      }); 
   }); 
 </script>
 
@@ -30,6 +33,9 @@ var lo = '{{  location }}';
         <p class="text-left text-success">
         Signed in as <a href="#" class="navbar-link">{{ username }}</a>
         </p>
+        {%if oauthType== "facebook" %}
+          <div style="text-align:center;"><img src="https://graph.facebook.com/{{userid}}/picture?type=large"></div>
+        {%endif%}
       </div>
 
       <div>
@@ -66,36 +72,48 @@ var lo = '{{  location }}';
   
     <h1>Welcome {{ username }} </h1>
 
-    <div class="row div_space">
-      <div class="col-md-6">
-        <div class="panel">
-          <div class="panel-heading"> 
-            <h2 class="panel-title">Your Favorite Artists</h2>
-          </div>
-          <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = 'favouriteArtist'>
-          </div>
-          <script type="text/javascript">
-          favouriteArtist();
-          </script>
+      <div class="row div_space">
+        <div class="col-md-12">
+          <div class="panel">
+            <div class="panel-heading"> 
+              <h2 class="panel-title">Your Favorite Artists</h2>
+            </div>
+            <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = 'favouriteArtist'>
+            </div>
+            <script type="text/javascript">
+              favouriteArtist();
+            </script>
         </div>
+      </div>
     </div>
 
+  <div class="row div_space">
     <div class="col-lg-6">
       <div class="panel panel-primary">
         <div class="panel-heading"> 
           <h2 class="panel-title">My Events</h2>
         </div>
-            <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = ''>
-            </div>
+        <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = 'myEvents'>
         </div>
-  </div>  
-</div>
+        <script type="text/javascript">
+        getmyEvents();
+        </script>
+      </div>  
+    </div>
 
-
-
-
-
-</div>    
+ 
+    <div class="col-lg-6">
+      <div class="panel panel-primary">
+        <div class="panel-heading"> 
+          <h2 class="panel-title">Proposed Events</h2>
+        </div>
+        <div class="panel-body" style="scroll; both; overflow:auto; height: 20em;" id = 'interestingEvents'>
+        </div>
+        <script type="text/javascript">
+        getinterestingEvents();
+        </script> 
+        </div>  
+      </div>
     </div>
 </div>
 

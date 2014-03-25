@@ -12,7 +12,10 @@
 </style>
 
 <script> $(function(){ 
-  $("#location").geocomplete(); 
+  $("#location").geocomplete(
+    { details: "form" ,
+    types:["(cities)"]
+      }); 
   }); 
 </script>
 

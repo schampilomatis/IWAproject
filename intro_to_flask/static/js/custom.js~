@@ -220,11 +220,8 @@ function fetchArtist() {
 		ul.addClass('list-group');
 
 		for (var i =0 ; i<artistlist.length;i++){
-			ended = data['artist-list'][i]['life-span']['ended'];
-			
-			if (ended=="false"){
 			addElement(data['artist-list'][i]['name'],ul,"artist",data['artist-list'][i]['id']);
-			}	
+			
 		}
 		$('#artist_suggestion').html(ul);
 	}
@@ -278,9 +275,6 @@ function browseArtists(){
 		var result = $('<span></span>');
 		
 		for(var i=0; i<artistlist.length;i++){
-			ended = data['artist-list'][i]['life-span']['ended'];
-			
-			if (ended=="false"){
 
 			name = data['artist-list'][i]['name'];
 			mbid = data['artist-list'][i]['id'];
@@ -293,7 +287,7 @@ function browseArtists(){
 			str.append(link);
 			p.append(str);
 			result.append(p);
-			}
+
 
 		}
 		$('#artist_list').html(result);
@@ -331,56 +325,24 @@ function browseArtists(){
 function requestEvents(mbid,name){
 		
 	$.get('/requestEvents' , data = {'mbid' : mbid}, function(data){
-		var resu = $('<span></span>');
-		var d = $('<div></div>');
-		var table = $ ('<table></table>');
-		table.attr('class' , 'table');
-		var thead = $ ('<thead></thead>');
-		var tr = $('<tr></tr>');
-		var tb = $("<tbody></tbody>");
+		var result = $('<span></span>');
 		
-		var th_loc = $('<th>', {text: "Location"});
-		th_loc.attr('style', 'text-align:center');
-		var th_n_vot = $('<th>', {text: "Number of Votes"});
-		th_n_vot.attr('style', 'text-align:center');
-		var th_vot = $('<th>', {text: "Do you want to vote?"});
-		th_vot.attr('style', 'text-align:center');
-
-
-		var head= thead.append(tr.append(th_loc).append(th_n_vot).append(th_vot));
-
 		data = JSON.parse(data);
 		if (data[0].hasOwnProperty('location')){
 		for(var i=0; i<data.length;i++){
-
-			tr = $("<tr></tr>");
-
-			loc = $("<td>", {text: data[i]['location']['value'] });
-			loc.attr('style', 'text-align: center');
-			n_votes = $("<td>", {text: data[i]['votes']['value'] });
-			n_votes.attr('style', 'text-align: center');
-			td=$('<td></td>');
-			votes = $("<a>", {text: "Vote" }, "</a>");
-			votes.attr("href", 'javascript:vote("'+data[i]['eventid']['value'].substring(15)+'")' );
-			votes.attr('style', 'color: "red"')
-			td.attr('style', 'text-align: center');
 			
-			tb.append(tr.append(loc).append(n_votes).append(td.append(votes)));
-
-			
+			link2 = $('<p>',{text:data[i]['location']['value']+data[i]['votes']['value']});
+			link = $('<a>',{text: "VOTE" });
+			link = link.attr("href", 'javascript:vote("'+data[i]['eventid']['value'].substring(15)+'")' );
+			result.append(link2.append( link ));
 		}
-		d.append(table.append(head).append(tb));
 
-	}		
-
-			var add_but = $('<div></div>');
-			add_but.attr('style', 'text-align:center');
+	}
 			but = $('<button>',{text: "CREATE NEW EVENT!"});
-			but.attr('class','btn btn-md btn-primary');
+			but.attr('class','btn-primary');
 			but.attr('onclick','showModal("'+mbid+'","'+name+'" );');
-
-			resu.append(d).append(add_but.append(but));
-		$('#event_list').html(resu);
+			result.append(but);
+		$('#event_list').html(result);
 
 });
 }
@@ -417,6 +379,15 @@ function vote(eventid){
 
 
 
+/*
+function createEvent(mbid,artist){
+	//console.log("createEvent: testing");
+	$.get('/createEvent' , data = {'mbid' : mbid, 'artist':artist}, function(data){
+	});
+}
+
+*/
+
 function showDescription(city,mbid) {
 	console.log(mbid)
 	console.log(city)
@@ -431,15 +402,15 @@ function favouriteArtist(){
 	$.get('/favouriteArtist', function(data){
 		result = "";
 		var fartist;
-
+		console.log(data);
 		data=JSON.parse(data);
 		var result = $('<span></span>');
 		
 		for(var i=0; i<data.length;i++){
-			str = $("<strong></strong>")
+
 			r = $("<p>", { text: data[i]['artistname']['value'] }, "</p>");
-			str.append(r)
-			result.append(str);
+
+			result.append(r);
 		}
 		$('#favouriteArtist').html(result);
 		   
@@ -447,108 +418,5 @@ function favouriteArtist(){
 }
 
 
-
-function getmyEvents(){
-
-	$.get('/getmyEvents', function(data){
-		result = "";
-		var mEvent;
-
-		data=JSON.parse(data);
-
-		var table = $ ('<table></table>');
-		table.attr('class' , 'table');
-		var thead = $ ('<thead></thead>');
-		var tr = $('<tr></tr>');
-		var tb = $("<tbody></tbody>");
-		
-		var th_art = $('<th>', {text: "Artist"});
-		th_art.attr('style', 'text-align:center');
-		var th_loc = $('<th>', {text: "Location"});
-		th_loc.attr('style', 'text-align:center');
-		var th_vot = $('<th>', {text: "Votes"});
-		th_vot.attr('style', 'text-align:center');
-
-		var head= thead.append(tr.append(th_art).append(th_loc).append(th_vot));
-
-
-		for(var i=0; i<data.length;i++){
-			tr = $("<tr></tr>");
-
-			art = $("<td>", {text: data[i]['artist']['value']});
-			art.attr('style', 'text-align:center');
-			loc = $("<td>", {text: data[i]['location']['value'] });
-			loc.attr('style', 'text-align: center');
-			votes = $("<td>", {text:data[i]['votes']['value'] });
-			votes.attr('style', 'text-align: center');
-			
-			tb.append(tr.append(art).append(loc).append(votes));
-
-			
-		}
-		table.append(head).append(tb);
-
-		$('#myEvents').html(table);
-		   
-	});
-
-}
-
-
-function getinterestingEvents(){
-
-	$.get('/getinterestingEvents', function(data){
-		result = "";
-		var mEvent;
-
-		data=JSON.parse(data);
-		console.log(data)
-
-		var table = $ ('<table></table>');
-		table.attr('class' , 'table');
-		var thead = $ ('<thead></thead>');
-		var tr = $('<tr></tr>');
-		var tb = $("<tbody></tbody>");
-		
-		var th_art = $('<th>', {text: "Artist"});
-		th_art.attr('style', 'text-align:center');
-		var th_loc = $('<th>', {text: "Location"});
-		th_loc.attr('style', 'text-align:center');
-		var th_n_vot = $('<th>', {text: "Votes"});
-		th_loc.attr('style', 'text-align:center');
-		var th_vot = $('<th>', {text: "Do you want to Vote?"});
-		th_vot.attr('style', 'text-align:center');
-
-		var head= thead.append(tr.append(th_art).append(th_loc).append(th_n_vot).append(th_vot));
-
-		
-		for(var i=0; i<data.length;i++){
-
-			tr = $("<tr></tr>");
-
-			art = $("<td>", {text: data[i][1]});
-			art.attr('style', 'text-align:center');
-			loc = $("<td>", {text: data[i][0] });
-			loc.attr('style', 'text-align: center');
-			n_votes = $("<td>", {text:data[i][2]});
-			n_votes.attr('style', 'text-align: center');
-			td=$('<td></td>');
-			td.attr('style', 'text-align: center');
-			votes = $("<a>", {text: "Vote" }, "</a>");
-			votes.attr("href", 'javascript:vote("'+data[i][4].substring(15)+'")' );
-			
-			
-			tb.append(tr.append(art).append(loc).append(n_votes).append(td.append(votes)));
-
-			
-		}
-		table.append(head).append(tb);
-
-		
-		$('#interestingEvents').html(table);
-		   
-	});
-
-}
 
 
